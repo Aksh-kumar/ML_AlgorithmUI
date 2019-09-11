@@ -2,4 +2,16 @@
     <h1>
         Expectation maximization
     </h1>
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+        <div>
+          <label>Name</label>
+          <input type="text" id='name' placeholder="name" formControlName="name" name="name">
+        </div>
+        <div class="form-group">
+          <label for="em">Predict Image: </label>
+          <input type="file" id="Image" (change)="onFileChange($event)" name="em" #fileInput>
+          <button type="button" (click)="clearFile()">clear file</button>
+        </div>
+        <button type="submit" [disabled]="form.invalid || loading">Submit </button>
+      </form>       
 </div>
