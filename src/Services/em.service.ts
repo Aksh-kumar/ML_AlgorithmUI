@@ -11,8 +11,8 @@ export class EMService {
         return this._httpClient.get(url, { headers: header, responseType: 'text'});
     }
     public predict(form: any) {
-        const url = 'http://127.0.0.1:5000/em';
-        const header = new HttpHeaders({'Content-Type': 'multipart/form-data; charset=utf-8'});
+        const url = 'http://127.0.0.1:5000/em/predict/';
+        const header = new HttpHeaders({'Content-Type': 'application/json; charset=utf-8'});
         return this._httpClient.post<any>(url, form, { headers: header});
     }
 }

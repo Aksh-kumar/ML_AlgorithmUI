@@ -10,25 +10,25 @@ import { FormGroup, FormBuilder, Validators } from '@angular/forms';
 export class EmComponent implements OnInit {
   form: FormGroup;
   loading = false;
+  url: any;
   @ViewChild('fileInput', {static: false}) fileInput: ElementRef;
   // tslint:disable-next-line: variable-name
   constructor(private _emService: EMService, private fb: FormBuilder) {
     this.createForm();
    }
    ngOnInit() {
-    this._emService.test().subscribe((response: any) => {
+     this.url = null;
+     this._emService.test().subscribe((response: any) => {
       console.log(response);
     });
   }
   createForm() {
     this.form = this.fb.group({
-      name: ['p_image', Validators.required],
       Image: null
     });
   }
   onFileChange(event) {
     const reader = new FileReader();
-    console.log(event.target.files);
     if (event.target.files && event.target.files.length > 0) {
       const file = event.target.files[0];
       reader.readAsDataURL(file);
@@ -38,6 +38,7 @@ export class EmComponent implements OnInit {
           filetype: file.type,
           value: reader.result.toString().split(',')[1]
         });
+        this.url = reader.result;
       };
     }
   }
@@ -57,6 +58,7 @@ export class EmComponent implements OnInit {
   }
   clearFile() {
     this.form.get('Image').setValue(null);
+    this.url = null;
     this.fileInput.nativeElement.value = '';
   }
 }
