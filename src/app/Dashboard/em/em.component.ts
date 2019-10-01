@@ -21,13 +21,18 @@ export class EmComponent implements OnInit {
     this.createForm();
   }
    ngOnInit() {
-     this.url = null;
-     this.url2 = null;
-     this.k = 1;
-     this.topNList = [{}];
-     this._emService.test().subscribe((response: any) => {
-      console.log(response);
-    });
+    this.url = null;
+    this.url2 = null;
+    this.k = 4;
+    this.topNList = [{}];
+    // this._emService.test().subscribe((response: any) => {
+    //   console.log(response);
+    // });
+    // this.getClusterName();
+    // this.getClusterParameter();
+    // this.getFirstNDataResponsibility(5);
+    this.getSupportedImagesExtension();
+    // this.getFirstNHeterogeneity(55);
   }
   createForm() {
     this.form = this.fb.group({
@@ -59,13 +64,52 @@ export class EmComponent implements OnInit {
       alert('No Image uploaded');
       return;
     }
-    console.log(formModel);
-    const resourceValue = 'data:' + formModel.filetype + ';base64,' + formModel.value;
+    // tslint:disable-next-line: no-string-literal
+    formModel['k'] = this.k;
+    const filetype = formModel.filetype;
+    const val = formModel.value;
+    const resourceValue = 'data:' + filetype + ';base64,' + val;
     this.url2 = this._sanitizer.bypassSecurityTrustResourceUrl(resourceValue);
     console.log(this.url2);
-    // this._emService.predict(formModel).subscribe((response) => {
-    //   console.log(response);
-    // });
+    console.log(formModel);
+    this._emService.predict(formModel).subscribe((response) => {
+       console.log(response);
+    });
+  }
+  getClusterName() {
+    this._emService.getClusterName(this.k).subscribe((response) => {
+      console.log(response);
+    });
+  }
+  setClusterName(mappingKey: any) {
+    this._emService.setClusterName(this.k, mappingKey).subscribe((response) => {
+      console.log(response);
+    });
+  }
+  getClusterParameter() {
+    this._emService.getClusterParameter(this.k).subscribe((response) => {
+      console.log(response);
+    });
+  }
+  getSupportedImagesExtension() {
+    this._emService.getSupportedImagesExtension(this.k).subscribe((response) => {
+      console.log(response);
+    });
+  }
+  getFirstNDataResponsibility(n: number) {
+    this._emService.getFirstNDataResponsibility(this.k, n).subscribe((response) => {
+      console.log(response);
+    });
+  }
+  getFirstNHeterogeneity(n: number) {
+    this._emService.getFirstNHeterogeneity(this.k, n).subscribe((response) => {
+      console.log(response);
+    });
+  }
+  changeK(k: number) {
+    this._emService.changeK(k).subscribe((response) => {
+      console.log(response);
+    });
   }
   clearFile() {
     this.form.get('Image').setValue(null);
