@@ -32,26 +32,25 @@
   <br>
   <div class='div-main3'>
     top n rows of train data
-    <table>
+    <table class='table-bordered'>
       <thead>
-        <ng-container *ngFor='let item of topNList;let i=index'>
           <tr>
-            <th>head 1</th>
-            <th>head 2</th>
-            <th>head 3</th>
-            <th>head 4</th>
+            <ng-container *ngFor='let item of NRespKeys;let i=index'>
+              <th>
+                <input type="text" class='form-control' [(ngModel)]='dicKToName[item]' [id]="item" [name]="i">
+                <button type="button" *ngIf='(item == (NRespKeys.length-1))' class='btn btn-info' (click)='save()'>save</button>
+              </th>
+            </ng-container>
           </tr>
-        </ng-container>
       </thead>
       <tbody>
-        <ng-container *ngFor='let item of topNList;let i=index'>
-          <tr>
-            <td>data 1</td>
-            <td>data 2</td>
-            <td>data 3</td>
-            <td>data 4</td>
+        <td *ngFor='let item of NRespKeys;let i=index'>
+          <tr *ngFor='let items of topNList[item];let i=index'>
+              <td (click)='bindPredictionData(items)'>
+                  <img [src]="items['browserUrl']" class="rounded-circle mr-3 img-class" height='100' width='100'>
+              </td>
           </tr>
-        </ng-container>
+        </td>
       </tbody>
     </table>
   </div>
