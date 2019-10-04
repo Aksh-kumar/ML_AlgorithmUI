@@ -2,6 +2,8 @@ import { Component, OnInit, ElementRef, ViewChild } from '@angular/core';
 import { EMService } from 'src/Services/em.service';
 import { FormGroup, FormBuilder, Validators } from '@angular/forms';
 import { DomSanitizer } from '@angular/platform-browser';
+import { Chart } from 'angular-highcharts';
+import { ImageBaseModel } from 'src/Models/ImageBaseModel';
 @Component({
   selector: 'app-em',
   templateUrl: './em.component.html',
@@ -17,6 +19,9 @@ export class EmComponent implements OnInit {
   topNList: any;
   dicKToName: any;
   NRespKeys: any;
+  logLikelyChart: Chart;
+  clusterParameter: any;
+  imageName: string;
   @ViewChild('fileInput', {static: false}) fileInput: ElementRef;
   // tslint:disable-next-line: variable-name
   constructor(private _emService: EMService, private fb: FormBuilder, private _sanitizer: DomSanitizer) {
@@ -25,18 +30,15 @@ export class EmComponent implements OnInit {
    ngOnInit() {
     this.url = null;
     this.url2 = null;
+    this.imageName = '';
     this.k = 4;
     this.topNList = {};
     this.dicKToName = {};
     this.NRespKeys = [];
-    for (let x = 0; x < this.k; x++) {
-      this.dicKToName[x] = x;
-    }
-    // this._emService.test().subscribe((response: any) => {
-    //   console.log(response);
-    // });
-    // this.getClusterName();
-    // this.getClusterParameter();
+    this.clusterParameter = {};
+    this.logLikelyChart = null; // this.getLineChart([1, 2, 3]);
+    this.getClusterName();
+    this.getClusterParameter();
     this.getFirstNDataResponsibility(5);
     this.getSupportedImagesExtension();
     // this.getFirstNHeterogeneity(55);
@@ -50,6 +52,13 @@ export class EmComponent implements OnInit {
   getClusterName() {
     this._emService.getClusterName(this.k).subscribe((response) => {
       console.log(response);
+      if (Object.keys(response).length !== 0) {
+        this.dicKToName = response;
+      } else {
+        for (let x = 0; x < this.k; x++) {
+          this.dicKToName[x] = x.toString();
+        }
+      }
     });
   }
   setClusterName(mappingKey: any) {
@@ -60,6 +69,10 @@ export class EmComponent implements OnInit {
   getClusterParameter() {
     this._emService.getClusterParameter(this.k).subscribe((response) => {
       console.log(response);
+      if (Object.keys(response)) {
+        this.clusterParameter = response;
+        this.logLikelyChart = this.getLineChart(this.clusterParameter.loglikelihood.slice());
+      }
     });
   }
   getSupportedImagesExtension() {
@@ -69,16 +82,20 @@ export class EmComponent implements OnInit {
   }
   getFirstNDataResponsibility(n: number) {
     this._emService.getFirstNDataResponsibility(this.k, n).subscribe((response) => {
+      console.log(response);
       if (Object.keys(response).length !== 0) {
         Object.keys(response).forEach(element => {
           response[element].forEach(ele => {
           // tslint:disable-next-line: no-string-literal
-          const base64 = this.getUrlFromBase64(ele['Extension'], ele['Image_base64']);
+          const base64 = this.getUrlFromBase64(ele['Extension'], ele['ImageBase64']);
           // tslint:disable-next-line: no-string-literal
           ele['browserUrl'] = base64;
           });
         });
         this.topNList = response;
+        const temp: ImageBaseModel = response[0][0] as ImageBaseModel;
+        console.log(temp);
+        console.log(this.topNList);
         this.NRespKeys = Object.keys(this.topNList);
       }
     });
@@ -137,9 +154,8 @@ export class EmComponent implements OnInit {
     const filetype = formModel.filetype;
     const val = formModel.value;
     const extension = '.' + filetype.split('/')[1];
-    console.log(filetype, extension);
-    // const resourceValue = 'data:' + filetype + ';base64,' + val;
-    this.url2 = this.getUrlFromBase64(extension , val);
+    const url = this.getUrlFromBase64(extension , val);
+    this.setImageUrl(url, formModel.filename);
     console.log(formModel);
     // this.predictImage(formModel);
   }
@@ -153,13 +169,48 @@ export class EmComponent implements OnInit {
     alert('retrain successful');
   }
   bindPredictionData(items: any) {
-    // pass
     console.log(items);
-    this.url2 = items.browserUrl;
+    this.setImageUrl(items.browserUrl, items.ImageName);
   }
   save() {
-    // pass
+    if (Object.keys(this.dicKToName).length === this.k &&
+    // tslint:disable-next-line: triple-equals
+    !Object.values(this.dicKToName).some(x => x == undefined || x == null)) {
+      console.log(this.dicKToName);
+    }
     alert('saved dictionay');
   }
   // button action end
+  // chart
+  getLineChart(Data: any): Chart {
+    const chart = new Chart({
+      chart: {
+        type: 'line'
+      },
+      title: {
+        text: 'LogLikelihood variation with iterations'
+      },
+      yAxis : {
+        title: {
+          text: 'Log likelihood'
+        }
+      },
+      credits: {
+        enabled: false
+      },
+      series: [
+        {
+          type: 'line',
+          name: 'Iterations',
+          data: Data
+        }
+      ]
+    });
+    return chart;
+  }
+  // End chart
+  setImageUrl(url: any, imageName: string) {
+    this.url = url;
+    this.imageName = imageName;
+  }
 }

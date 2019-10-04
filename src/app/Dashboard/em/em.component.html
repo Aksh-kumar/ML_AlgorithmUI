@@ -19,15 +19,16 @@
               <input type="number" class='form-control input-k-class' [(ngModel)]='k' id="k_val" min=1 name="em">
               <button type="button" class='btn btn-info btn-retrain-class' (click)='retrain()'>Retrain</button>
           </div>
-          <div class='img-div-class'>
+          <!-- <div class='img-div-class'>
             <img [src]="(url) ? url : '../../assets/no_image.png'" alt="No Image choosen" class="rounded-circle mr-3 img-class" height='100' width='100'> <br/>
             <label>{{(form.get('Image').value.filename != null) ? form.get('Image').value.filename : '' }}</label>
-          </div>  
+          </div>   -->
         </div>
   </div>
   <div class='div-main2'>
   pi chart
-  <img [src]="(url2) ? url2 : '../../assets/no_image.png'" alt="No Image choosen" class="rounded-circle mr-3 img-class" height='100' width='100'>
+  <img [src]="(url) ? url : '../../assets/no_image.png'" alt="No Image choosen" class="rounded-circle mr-3 img-class" height='100' width='100'>
+  <label>{{imageName }}</label>
   </div>
   <br>
   <div class='div-main3'>
@@ -55,6 +56,7 @@
     </table>
   </div>
   <div class='div-main4'>
-    heteroginity
+    log likelyhood
+    <div [chart]="logLikelyChart"></div>
   </div>
 </div>
