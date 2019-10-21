@@ -64,6 +64,14 @@ export class EmComponent implements OnInit {
   setClusterName(mappingKey: any) {
     this._emService.setClusterName(this.k, mappingKey).subscribe((response) => {
       console.log(response);
+      if (Object.keys(response).length !== 0) {
+        if (response.res) {
+          alert('saved dictionay');
+          this.getClusterName();
+        } else {
+          alert('soe error occured');
+        }
+      }
     });
   }
   getClusterParameter() {
@@ -102,7 +110,7 @@ export class EmComponent implements OnInit {
   }
   getFirstNHeterogeneity(n: number) {
     this._emService.getFirstNHeterogeneity(this.k, n).subscribe((response) => {
-      console.log(response);
+      // console.log(response);
     });
   }
   changeK(k: number) {
@@ -157,7 +165,7 @@ export class EmComponent implements OnInit {
     const url = this.getUrlFromBase64(extension , val);
     this.setImageUrl(url, formModel.filename);
     console.log(formModel);
-    // this.predictImage(formModel);
+    this.predictImage(formModel);
   }
   clearFile() {
     this.form.get('Image').setValue(null);
@@ -177,8 +185,8 @@ export class EmComponent implements OnInit {
     // tslint:disable-next-line: triple-equals
     !Object.values(this.dicKToName).some(x => x == undefined || x == null)) {
       console.log(this.dicKToName);
+      this.setClusterName(this.dicKToName);
     }
-    alert('saved dictionay');
   }
   // button action end
   // chart
