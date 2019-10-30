@@ -1,9 +1,23 @@
-import { Component, OnInit, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, ElementRef, ViewChild, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { EMService } from 'src/Services/em.service';
 import { FormGroup, FormBuilder, Validators } from '@angular/forms';
 import { DomSanitizer } from '@angular/platform-browser';
 import { Chart } from 'angular-highcharts';
-import { ImageBaseModel } from 'src/Models/ImageBaseModel';
+import { ImageModel } from 'src/Models/ImageModel';
+import { EMNAV } from 'src/app/Constants/application.constants';
+import { ViewEMNavigation } from 'src/Models/ViewEMNavigation';
+// import * as Highcharts from 'highcharts';
+
+// declare var require: any;
+// let Boost = require('highcharts/modules/boost');
+// let noData = require('highcharts/modules/no-data-to-display');
+// let More = require('highcharts/highcharts-more');
+
+// Boost(Highcharts);
+// noData(Highcharts);
+// More(Highcharts);
+// noData(Highcharts);
+
 @Component({
   selector: 'app-em',
   templateUrl: './em.component.html',
@@ -11,32 +25,45 @@ import { ImageBaseModel } from 'src/Models/ImageBaseModel';
 })
 export class EmComponent implements OnInit {
   form: FormGroup;
-  loading = false;
+  imageExtension: string[];
   url: any;
   k: number;
   readonly MAX_N_TRAINING_DATA = 5;
-  url2: any;
+  readonly NAV = EMNAV;
+  readonly viewNav = ViewEMNavigation;
   topNList: any;
   dicKToName: any;
   NRespKeys: any;
-  logLikelyChart: Chart;
+  parameterChart: Chart;
+  featureChart: Chart;
+  responsibilityChart: Chart;
   clusterParameter: any;
   imageName: string;
+  imageParameter: ImageModel;
   @ViewChild('fileInput', {static: false}) fileInput: ElementRef;
+  // @ViewChild('logLikelihoodChart', {static: false}) public logLikelihoodChartRef: ElementRef;
+  // @ViewChild('meansChart', {static: false}) public meansChartRef: ElementRef;
+  // @ViewChild('weightsChart', {static: false}) public weightsChartRef: ElementRef;
+  // @ViewChild('featureChart', {static: false}) public featureChartRef: ElementRef;
   // tslint:disable-next-line: variable-name
-  constructor(private _emService: EMService, private fb: FormBuilder, private _sanitizer: DomSanitizer) {
+  constructor(private _emService: EMService, private _cdref: ChangeDetectorRef,
+              // tslint:disable-next-line: variable-name
+              private fb: FormBuilder, private _sanitizer: DomSanitizer) {
     this.createForm();
   }
    ngOnInit() {
     this.url = null;
-    this.url2 = null;
     this.imageName = '';
+    this.imageParameter = null;
     this.k = 4;
     this.topNList = {};
     this.dicKToName = {};
     this.NRespKeys = [];
+    this.imageExtension = [];
     this.clusterParameter = {};
-    this.logLikelyChart = null; // this.getLineChart([1, 2, 3]);
+    this.parameterChart = null;
+    this.featureChart = null;
+    this.responsibilityChart = null;
     this.getClusterName();
     this.getClusterParameter();
     this.getFirstNDataResponsibility(5);
@@ -46,51 +73,54 @@ export class EmComponent implements OnInit {
   /// API calling methods
   predictImage(formModel: any) {
     this._emService.predict(formModel).subscribe((response) => {
-      console.log(response);
+      if (Object.keys(response).length !== 0) {
+        const url = this.getUrlFromBase64(response[0].Extension, formModel.value);
+        response[0].browserUrl = url;
+        this.bindPredictionData(response[0]);
+      }
     });
   }
   getClusterName() {
     this._emService.getClusterName(this.k).subscribe((response) => {
-      console.log(response);
       if (Object.keys(response).length !== 0) {
         this.dicKToName = response;
       } else {
         for (let x = 0; x < this.k; x++) {
-          this.dicKToName[x] = x.toString();
+          this.dicKToName[x.toString()] = x.toString();
         }
       }
     });
   }
   setClusterName(mappingKey: any) {
     this._emService.setClusterName(this.k, mappingKey).subscribe((response) => {
-      console.log(response);
       if (Object.keys(response).length !== 0) {
         if (response.res) {
           alert('saved dictionay');
           this.getClusterName();
         } else {
-          alert('soe error occured');
+          alert('some error occured');
         }
       }
     });
   }
   getClusterParameter() {
     this._emService.getClusterParameter(this.k).subscribe((response) => {
-      console.log(response);
       if (Object.keys(response)) {
         this.clusterParameter = response;
-        this.logLikelyChart = this.getLineChart(this.clusterParameter.loglikelihood.slice());
+        // console.log(response);
+        this.parameterChart = this.getLineChart(this.clusterParameter.loglikelihood);
       }
     });
   }
   getSupportedImagesExtension() {
     this._emService.getSupportedImagesExtension(this.k).subscribe((response) => {
-      console.log(response);
+      if (Object.keys(response).length !== 0) {
+        this.imageExtension = response;
+      }
     });
   }
   getFirstNDataResponsibility(n: number) {
     this._emService.getFirstNDataResponsibility(this.k, n).subscribe((response) => {
-      console.log(response);
       if (Object.keys(response).length !== 0) {
         Object.keys(response).forEach(element => {
           response[element].forEach(ele => {
@@ -101,9 +131,7 @@ export class EmComponent implements OnInit {
           });
         });
         this.topNList = response;
-        const temp: ImageBaseModel = response[0][0] as ImageBaseModel;
-        console.log(temp);
-        console.log(this.topNList);
+        // console.log(this.topNList);
         this.NRespKeys = Object.keys(this.topNList);
       }
     });
@@ -140,7 +168,9 @@ export class EmComponent implements OnInit {
           filetype: file.type,
           value: reader.result.toString().split(',')[1]
         });
-        this.url = reader.result;
+        // this.url = reader.result;
+        this.setImageUrl(reader.result,  file.name);
+        this.imageParameter = null;
       };
     }
   }
@@ -160,32 +190,54 @@ export class EmComponent implements OnInit {
     // tslint:disable-next-line: no-string-literal
     formModel['k'] = this.k;
     const filetype = formModel.filetype;
-    const val = formModel.value;
+    // const val = formModel.value;
     const extension = '.' + filetype.split('/')[1];
-    const url = this.getUrlFromBase64(extension , val);
-    this.setImageUrl(url, formModel.filename);
-    console.log(formModel);
+    if (this.imageExtension.find(x => extension).length === 0) {
+      alert('File is not supported');
+      return;
+    }
+    // const url = this.getUrlFromBase64(extension , val);
+    // this.setImageUrl(url, formModel.filename);
     this.predictImage(formModel);
   }
   clearFile() {
     this.form.get('Image').setValue(null);
     this.url = null;
     this.fileInput.nativeElement.value = '';
+    this.imageParameter = null;
+    this.setImageUrl(this.url, null);
   }
   retrain() {
     // pass
     alert('retrain successful');
   }
   bindPredictionData(items: any) {
-    console.log(items);
     this.setImageUrl(items.browserUrl, items.ImageName);
+    this.imageParameter = new ImageModel(items);
+    // console.log(this.dicKToName[this.imageParameter.AssignCluster]);
+    this.featureChart = this.getfeatureChart(this.imageParameter.R, this.imageParameter.G, this.imageParameter.B);
+    this.responsibilityChart = this.getResponsibilityLineChart(this.imageParameter.SoftCount);
+    // console.log(this.imageParameter);
   }
   save() {
     if (Object.keys(this.dicKToName).length === this.k &&
     // tslint:disable-next-line: triple-equals
     !Object.values(this.dicKToName).some(x => x == undefined || x == null)) {
-      console.log(this.dicKToName);
+      // console.log(this.dicKToName);
       this.setClusterName(this.dicKToName);
+    }
+  }
+  navChange(nav: EMNAV) {
+    this.viewNav.setVisibility(nav);
+    this._cdref.markForCheck();
+    if (nav === EMNAV.LOGLIKELIHOOD) {
+      this.parameterChart = this.getLineChart(this.clusterParameter.loglikelihood);
+    } else if (nav === EMNAV.MEANS) {
+      this.parameterChart = this.getmeansChart(this.clusterParameter.means);
+    } else if (nav === EMNAV.WEIGHTS) {
+      this.parameterChart = this.getPieChart(this.clusterParameter.weights, 'Weights of cluster');
+    } else {
+      this.parameterChart = null;
     }
   }
   // button action end
@@ -193,6 +245,8 @@ export class EmComponent implements OnInit {
   getLineChart(Data: any): Chart {
     const chart = new Chart({
       chart: {
+        width: 630,
+        height: 210,
         type: 'line'
       },
       title: {
@@ -214,6 +268,199 @@ export class EmComponent implements OnInit {
         }
       ]
     });
+    // if (ref && ref.nativeElement) {
+    //   // tslint:disable-next-line: no-string-literal
+    //   chart.chart['renderTo'] = 'a1'; // ref.nativeElement;
+    // }
+    return chart;
+  }
+  getResponsibilityLineChart(Data: any): Chart {
+    const chart = new Chart({
+      chart: {
+        width: 310,
+        height: 180,
+        type: 'line'
+      },
+      title: {
+        text: 'Responsibilities of assignment cluster'
+      },
+      xAxis: {
+        categories: Object.keys(Data).map(element => this.dicKToName[element.toString()])
+        // labels: {enabled: false}
+      },
+      yAxis : {
+        title: {
+          text: 'Responsibility'
+        },
+        min: -1
+      },
+      tooltip: {
+        // shared: true,
+        // tslint:disable-next-line: object-literal-shorthand
+        formatter: function() {
+          return '<span> ' + this.y.toString() + '<b>(' + (+parseFloat(this.y.toString()).toFixed( 2 ) * 100).toString() + '%)</b>';
+        }
+      },
+      credits: {
+        enabled: false
+      },
+      series: [
+        {
+          type: 'line',
+          name: '',
+          data: Object.values(Data)
+        }
+      ]
+    });
+    // if (ref && ref.nativeElement) {
+    //   // tslint:disable-next-line: no-string-literal
+    //   chart.chart['renderTo'] = 'a1'; // ref.nativeElement;
+    // }
+    return chart;
+  }
+  getfeatureChart(r: number, g: number, b: number): Chart {
+    const chart = new Chart({
+      chart: {
+          width: 287,
+          height: 181,
+          type: 'column'
+      },
+      title: {
+          text: 'Features'
+      },
+      subtitle: {
+          text: 'Feature Intensity of red blue and green color'
+      },
+      xAxis: {
+          categories: [
+              'Red',
+              'Green',
+              'Blue'
+          ]
+          // labels: {enabled: false}
+      },
+      yAxis: {
+          min: 0,
+          title: {
+              text: 'Average intensity (units)'
+          }
+      },
+      series: [
+        {
+          type: 'column',
+          name: '',
+          data: [{
+            name: 'Red',
+            color: '#FF0000',
+            y: r
+            }, {
+              name: 'Green',
+              color: '#00FF00',
+              y: g
+            }, {
+            name: 'Blue',
+            color: '#0000FF',
+            y: b
+            }
+          ]
+        }
+      ]
+    });
+    // if (ref && ref.nativeElement) {
+    //   // tslint:disable-next-line: no-string-literal
+    //   chart.chart['renderTo'] = ref.nativeElement;
+    // }
+    return chart;
+  }
+  getmeansChart(data: any): Chart {
+    const Series = [];
+    // tslint:disable-next-line: prefer-for-of
+    for (let i = 0; i < data.length; i++) {
+      const serie = {
+        type: 'column',
+        color: 'B3CCFF',
+        name: this.dicKToName[i.toString()],
+        data: [{
+          name: 'Red',
+          color: '#FF0000',
+          y: data[i][0]
+          }, {
+            name: 'Green',
+            color: '#00FF00',
+            y: data[i][1]
+          }, {
+          name: 'Blue',
+          color: '#0000FF',
+          y: data[i][2]
+          }]
+        };
+      Series.push(serie);
+    }
+    const chart = new Chart({
+      chart: {
+        width: 630,
+        height: 210,
+        type: 'column'
+      },
+      title: {
+          text: 'Means'
+      },
+      subtitle: {
+          text: 'centroids co-ordinate of each cluster'
+      },
+      xAxis: {
+          categories: ['Red', 'Green', 'Blue']
+      },
+      yAxis: {
+          min: 0
+      },
+      legend: {
+          enabled: false
+      },
+      series: Series
+    });
+    // if (ref && ref.nativeElement) {
+    //   // tslint:disable-next-line: no-string-literal
+    //   chart.chart['renderTo'] = 'a2'; // ref.nativeElement;
+    // }
+    return chart;
+  }
+  getPieChart(Data: any, title: string): Chart {
+    const chart = new Chart({
+        chart: {
+          width: 630,
+          height: 210,
+          type: 'pie'
+        },
+        title: {
+              text: title,
+          },
+        subtitle: {
+            text: ''
+          },
+      xAxis: {
+        categories: Object.keys(Data).map(element => this.dicKToName[element.toString()])
+      },
+      yAxis: {
+        min: 0
+      },
+      tooltip: {
+        shared: true,
+        pointFormat: '<b> {point.y}</b><br/>'
+      },
+      series: [{
+        type: 'pie',
+        data: Object.keys(Data).map(element => {
+                return {
+                name: this.dicKToName[element.toString()],
+                y: Data[element]};
+              }),
+        }]
+    });
+    // if (ref && ref.nativeElement) {
+    //   // tslint:disable-next-line: no-string-literal
+    //   chart.chart['renderTo'] = 'a4'; // ref.nativeElement;
+    // }
     return chart;
   }
   // End chart

@@ -3,7 +3,9 @@
 // The list of file replacements can be found in `angular.json`.
 
 export const environment = {
-  production: false
+  production: false,
+  ASSET_ROOT: '../../assets/',
+  NO_IMAGE_FILENAME: 'no_image.png'
 };
 
 /*

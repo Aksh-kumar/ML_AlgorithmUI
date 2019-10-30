@@ -1,44 +1,48 @@
 <div class='main'>
   <div class='div-main1'>
       <form [formGroup]="form" class="form-inline form-main" (ngSubmit)="onSubmit()">
-          <!-- <div>
-            <label>Name</label>
-            <input type="text" id='name' placeholder="name" formControlName="name" name="name">
-          </div> -->
           <div class="form-group">
             <label for="em">Predict Image: </label>
             <input type="file" id="Image" class="form-control-file border file-class" (change)="onFileChange($event)" name="em" #fileInput>
             <br>
             <button type="button" class="btn btn-secondary clear-class" (click)="clearFile()">clear file</button>
           </div>
-          <button type="submit" class="btn btn-primary btn-submit-class" [disabled]="form.invalid || loading">Submit </button>
+          <button type="submit" class="btn btn-primary btn-submit-class" [disabled]="form.invalid || loading">Predict </button>
         </form>
         <div class='div-k-img-main'>
           <div class="form-inline">
-              <label for="k_val">K value: </label>
-              <input type="number" class='form-control input-k-class' [(ngModel)]='k' id="k_val" min=1 name="em">
-              <button type="button" class='btn btn-info btn-retrain-class' (click)='retrain()'>Retrain</button>
+              <label for="k_val">Number of cluster : </label>
+              <input type="number" [disabled]='true' class='form-control input-k-class' [(ngModel)]='k' id="k_val" min=1 name="em">
+              <!-- <button type="button" class='btn btn-info btn-retrain-class' (click)='retrain()'>Retrain</button> -->
           </div>
-          <!-- <div class='img-div-class'>
-            <img [src]="(url) ? url : '../../assets/no_image.png'" alt="No Image choosen" class="rounded-circle mr-3 img-class" height='100' width='100'> <br/>
-            <label>{{(form.get('Image').value.filename != null) ? form.get('Image').value.filename : '' }}</label>
-          </div>   -->
         </div>
   </div>
   <div class='div-main2'>
-  pi chart
-  <img [src]="(url) ? url : '../../assets/no_image.png'" alt="No Image choosen" class="rounded-circle mr-3 img-class" height='100' width='100'>
-  <label>{{imageName }}</label>
+      <img [src]="(url) ? url : '../../assets/no_image.png'" alt="No Image choosen" class="rounded-circle mr-3 img-class" height='100' width='100'>
+      <div class='image-name-labels'>
+        <label class='image-name-label1'> Image Name : {{imageName }}</label><br>
+        <ng-container *ngIf='imageParameter != null'>
+          <label class='image-name-label2'>Assign Cluster : {{dicKToName[imageParameter.AssignCluster]}}</label>
+        </ng-container>
+    </div>
+    <div *ngIf = 'imageParameter != null' class='image-parameter-main'>
+      <div class='image-parameter-child1'>
+        <div [chart]='featureChart'></div>
+      </div>
+      <div class='image-parameter-child2'>
+        <div [chart]='responsibilityChart'> </div>
+      </div>
+    </div>
   </div>
   <br>
   <div class='div-main3'>
-    top n rows of train data
-    <table class='table-bordered'>
+    Top <b>{{MAX_N_TRAINING_DATA}}</b> Rows of Train Data
+    <table class='table-fixed'>
       <thead>
           <tr>
             <ng-container *ngFor='let item of NRespKeys;let i=index'>
               <th>
-                <input type="text" class='form-control' [(ngModel)]='dicKToName[item]' [id]="item" [name]="i">
+                <input type="text" class='input-cluster-name' [class.last-cluster]='(item == (NRespKeys.length-1))' [(ngModel)]='dicKToName[item]' [id]="item" [name]="i">
                 <button type="button" *ngIf='(item == (NRespKeys.length-1))' class='btn btn-info' (click)='save()'>save</button>
               </th>
             </ng-container>
@@ -48,7 +52,7 @@
         <td *ngFor='let item of NRespKeys;let i=index'>
           <tr *ngFor='let items of topNList[item];let i=index'>
               <td (click)='bindPredictionData(items)'>
-                  <img [src]="items['browserUrl']" class="rounded-circle mr-3 img-class" height='100' width='100'>
+                  <img [src]="items['browserUrl']" class="rounded-circle mr-3 img-class" height='110' width='110'>
               </td>
           </tr>
         </td>
@@ -56,7 +60,27 @@
     </table>
   </div>
   <div class='div-main4'>
-    log likelyhood
-    <div [chart]="logLikelyChart"></div>
+    <nav class="navbar navbar-expand-sm bg-info navbar-dark">
+        <ul class="navbar-nav">
+          <li class="nav-item" style = "cursor:pointer" [class.active]='viewNav.logLikelihood'>
+            <a class="nav-link" (click)='navChange(NAV.LOGLIKELIHOOD)'>Log Likelyhood</a>
+          </li>
+          <li class="nav-item" style = "cursor:pointer" [class.active]='viewNav.means'>
+              <a class="nav-link" (click)='navChange(NAV.MEANS)'>Mean</a>
+          </li>
+          <li class="nav-item" style = "cursor:pointer" [class.active]='viewNav.covariances'>
+              <a class="nav-link" (click)='navChange(NAV.COVARIANCES)'>Covarience Metrix</a>
+          </li>
+          <li class="nav-item" style = "cursor:pointer" [class.active]='viewNav.weights'>
+              <a class="nav-link" (click)='navChange(NAV.WEIGHTS)'>Weight</a>
+          </li>
+        </ul>
+      </nav>
+      <div>
+        <ng-container *ngIf="viewNav.logLikelihood"><div [chart]='parameterChart'></div></ng-container>
+        <ng-container *ngIf="viewNav.means"><div [chart]='parameterChart'></div></ng-container>
+        <ng-container *ngIf="viewNav.covariances"><div> <app-dynamictable [data]='clusterParameter.covariances' [nameDic]='dicKToName'></app-dynamictable></div></ng-container>
+        <ng-container *ngIf="viewNav.weights"><div [chart]='parameterChart'></div></ng-container>
+      </div>
   </div>
 </div>
