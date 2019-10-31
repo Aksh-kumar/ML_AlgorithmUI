@@ -7,7 +7,7 @@
             <br>
             <button type="button" class="btn btn-secondary clear-class" (click)="clearFile()">clear file</button>
           </div>
-          <button type="submit" class="btn btn-primary btn-submit-class" [disabled]="form.invalid || loading">Predict </button>
+          <button type="submit" class="btn btn-primary btn-submit-class" [disabled]="form.invalid">Predict </button>
         </form>
         <div class='div-k-img-main'>
           <div class="form-inline">
@@ -18,9 +18,9 @@
         </div>
   </div>
   <div class='div-main2'>
-      <img [src]="(url) ? url : '../../assets/no_image.png'" alt="No Image choosen" class="rounded-circle mr-3 img-class" height='100' width='100'>
+      <img [src]="(url) ? url : noIMG" alt="No Image choosen" class="rounded-circle mr-3 img-class" height='100' width='100'>
       <div class='image-name-labels'>
-        <label class='image-name-label1'> Image Name : {{imageName }}</label><br>
+        <label class='image-name-label1'> <B>Image Name : </B>{{imageName }}</label><br>
         <ng-container *ngIf='imageParameter != null'>
           <label class='image-name-label2'>Assign Cluster : {{dicKToName[imageParameter.AssignCluster]}}</label>
         </ng-container>

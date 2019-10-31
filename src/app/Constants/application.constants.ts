@@ -1,5 +1,5 @@
-import { environment } from 'src/environments/environment.prod';
-
+// import { environment } from 'src/environments/environment.prod';
+import { environment } from 'src/environments/environment';
 export enum EMNAV {
     LOGLIKELIHOOD = 1,
     MEANS = 2,
@@ -7,5 +7,6 @@ export enum EMNAV {
     WEIGHTS = 4
 }
 
-// const NO_ImageUrl = environment.ASSET_ROOT + environment.NO_IMAGE_FILENAME;
+// tslint:disable-next-line: variable-name
+export const NO_IMAGEURL = environment.ASSET_ROOT + environment.NO_IMAGE_FILENAME;
 

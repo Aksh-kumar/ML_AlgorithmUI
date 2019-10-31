@@ -1,10 +1,10 @@
-import { Component, OnInit, ElementRef, ViewChild, AfterViewInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ElementRef, ViewChild, EventEmitter } from '@angular/core';
 import { EMService } from 'src/Services/em.service';
 import { FormGroup, FormBuilder, Validators } from '@angular/forms';
 import { DomSanitizer } from '@angular/platform-browser';
 import { Chart } from 'angular-highcharts';
 import { ImageModel } from 'src/Models/ImageModel';
-import { EMNAV } from 'src/app/Constants/application.constants';
+import { EMNAV, NO_IMAGEURL } from 'src/app/Constants/application.constants';
 import { ViewEMNavigation } from 'src/Models/ViewEMNavigation';
 // import * as Highcharts from 'highcharts';
 
@@ -31,6 +31,7 @@ export class EmComponent implements OnInit {
   readonly MAX_N_TRAINING_DATA = 5;
   readonly NAV = EMNAV;
   readonly viewNav = ViewEMNavigation;
+  readonly noIMG = NO_IMAGEURL;
   topNList: any;
   dicKToName: any;
   NRespKeys: any;
@@ -40,19 +41,35 @@ export class EmComponent implements OnInit {
   clusterParameter: any;
   imageName: string;
   imageParameter: ImageModel;
+  clusterIsReady: EventEmitter<boolean>;
   @ViewChild('fileInput', {static: false}) fileInput: ElementRef;
   // @ViewChild('logLikelihoodChart', {static: false}) public logLikelihoodChartRef: ElementRef;
   // @ViewChild('meansChart', {static: false}) public meansChartRef: ElementRef;
   // @ViewChild('weightsChart', {static: false}) public weightsChartRef: ElementRef;
   // @ViewChild('featureChart', {static: false}) public featureChartRef: ElementRef;
   // tslint:disable-next-line: variable-name
-  constructor(private _emService: EMService, private _cdref: ChangeDetectorRef,
+  constructor(private _emService: EMService,
               // tslint:disable-next-line: variable-name
               private fb: FormBuilder, private _sanitizer: DomSanitizer) {
     this.createForm();
   }
    ngOnInit() {
+     this.initVar();
+     this.getClusterParameter(true);
+     // this.retrain();
+     this.clusterIsReady.subscribe((res) => {
+      if (res) {
+        this.getClusterName();
+        this.getFirstNDataResponsibility(5);
+        this.getSupportedImagesExtension();
+        // this.getFirstNHeterogeneity(55);
+      }
+    });
+  }
+  // Init variables
+  initVar() {
     this.url = null;
+    this.clusterIsReady =  new EventEmitter<boolean>();
     this.imageName = '';
     this.imageParameter = null;
     this.k = 4;
@@ -64,11 +81,6 @@ export class EmComponent implements OnInit {
     this.parameterChart = null;
     this.featureChart = null;
     this.responsibilityChart = null;
-    this.getClusterName();
-    this.getClusterParameter();
-    this.getFirstNDataResponsibility(5);
-    this.getSupportedImagesExtension();
-    // this.getFirstNHeterogeneity(55);
   }
   /// API calling methods
   predictImage(formModel: any) {
@@ -103,12 +115,15 @@ export class EmComponent implements OnInit {
       }
     });
   }
-  getClusterParameter() {
+  getClusterParameter(trigger = false) {
     this._emService.getClusterParameter(this.k).subscribe((response) => {
       if (Object.keys(response)) {
         this.clusterParameter = response;
         // console.log(response);
         this.parameterChart = this.getLineChart(this.clusterParameter.loglikelihood);
+        if (trigger) {
+          this.clusterIsReady.emit(true);
+        }
       }
     });
   }
@@ -143,7 +158,13 @@ export class EmComponent implements OnInit {
   }
   changeK(k: number) {
     this._emService.changeK(k).subscribe((response) => {
-      console.log(response);
+      // console.log(response);
+      if (Object.keys(response).length !== 0) {
+        if (response.res) {
+          alert('retrain successful');
+          this.getClusterParameter(true);
+        }
+      }
     });
   }
   /// API calling methods end
@@ -208,8 +229,7 @@ export class EmComponent implements OnInit {
     this.setImageUrl(this.url, null);
   }
   retrain() {
-    // pass
-    alert('retrain successful');
+    this.changeK(this.k);
   }
   bindPredictionData(items: any) {
     this.setImageUrl(items.browserUrl, items.ImageName);
@@ -229,7 +249,6 @@ export class EmComponent implements OnInit {
   }
   navChange(nav: EMNAV) {
     this.viewNav.setVisibility(nav);
-    this._cdref.markForCheck();
     if (nav === EMNAV.LOGLIKELIHOOD) {
       this.parameterChart = this.getLineChart(this.clusterParameter.loglikelihood);
     } else if (nav === EMNAV.MEANS) {
