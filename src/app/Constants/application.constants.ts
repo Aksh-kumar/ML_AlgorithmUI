@@ -1,5 +1,5 @@
-// import { environment } from 'src/environments/environment.prod';
 import { environment } from 'src/environments/environment';
+
 export enum EMNAV {
     LOGLIKELIHOOD = 1,
     MEANS = 2,

@@ -7,9 +7,8 @@ import { Router } from '@angular/router';
   styleUrls: ['./app.component.sass']
 })
 export class AppComponent implements OnInit {
-  title = 'ml-model';
   constructor(private route: Router) {}
   ngOnInit() {
-    this.route.navigate(['/expectation-maximization']);
+    this.route.navigate(['/expectation-maximization']); // default route TO EM page
   }
 }
