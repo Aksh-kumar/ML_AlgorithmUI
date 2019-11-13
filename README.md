@@ -1,6 +1,6 @@
-# MlModel
+# MlAlgorithmUI
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 8.3.3.
+This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 8.3.3. Client side consuming API related to Machine learning algorithms.It gives better chart representation of ML algorithms parameter for better vsualization.
 
 ## Development server
 
