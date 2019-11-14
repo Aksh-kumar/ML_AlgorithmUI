@@ -60,7 +60,7 @@ export class EmComponent implements OnInit {
      this.clusterIsReady.subscribe((res) => {
       if (res) {
         this.getClusterName();
-        this.getFirstNDataResponsibility(5);
+        this.getFirstNDataResponsibility(this.MAX_N_TRAINING_DATA);
         this.getSupportedImagesExtension();
         // this.getFirstNHeterogeneity(55);
       }
