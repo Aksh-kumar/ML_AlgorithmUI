@@ -1,22 +1,11 @@
 import { Component, OnInit, ElementRef, ViewChild, EventEmitter } from '@angular/core';
 import { EMService } from 'src/Services/em.service';
-import { FormGroup, FormBuilder, Validators } from '@angular/forms';
-import { DomSanitizer } from '@angular/platform-browser';
+import { FormGroup, FormBuilder } from '@angular/forms';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Chart } from 'angular-highcharts';
 import { ImageModel } from 'src/Models/ImageModel';
 import { EMNAV, NO_IMAGEURL } from 'src/app/Constants/application.constants';
 import { ViewEMNavigation } from 'src/Models/ViewEMNavigation';
-// import * as Highcharts from 'highcharts';
-
-// declare var require: any;
-// let Boost = require('highcharts/modules/boost');
-// let noData = require('highcharts/modules/no-data-to-display');
-// let More = require('highcharts/highcharts-more');
-
-// Boost(Highcharts);
-// noData(Highcharts);
-// More(Highcharts);
-// noData(Highcharts);
 
 @Component({
   selector: 'app-em',
@@ -43,30 +32,26 @@ export class EmComponent implements OnInit {
   imageParameter: ImageModel;
   clusterIsReady: EventEmitter<boolean>;
   @ViewChild('fileInput', {static: false}) fileInput: ElementRef;
-  // @ViewChild('logLikelihoodChart', {static: false}) public logLikelihoodChartRef: ElementRef;
-  // @ViewChild('meansChart', {static: false}) public meansChartRef: ElementRef;
-  // @ViewChild('weightsChart', {static: false}) public weightsChartRef: ElementRef;
-  // @ViewChild('featureChart', {static: false}) public featureChartRef: ElementRef;
   // tslint:disable-next-line: variable-name
   constructor(private _emService: EMService,
               // tslint:disable-next-line: variable-name
               private fb: FormBuilder, private _sanitizer: DomSanitizer) {
     this.createForm();
   }
+
    ngOnInit() {
      this.initVar();
      this.getClusterParameter(true);
-     // this.retrain();
      this.clusterIsReady.subscribe((res) => {
       if (res) {
         this.getClusterName();
         this.getFirstNDataResponsibility(this.MAX_N_TRAINING_DATA);
         this.getSupportedImagesExtension();
-        // this.getFirstNHeterogeneity(55);
       }
     });
   }
-  // Init variables
+
+  // Initialize all variables
   initVar() {
     this.url = null;
     this.clusterIsReady =  new EventEmitter<boolean>();
@@ -82,63 +67,98 @@ export class EmComponent implements OnInit {
     this.featureChart = null;
     this.responsibilityChart = null;
   }
+
   /// API calling methods
+
+  /**
+   * take form data object as parameter and
+   * bind the predicted response data to html
+   * @param formModel: object
+   */
   predictImage(formModel: any) {
     this._emService.predict(formModel).subscribe((response) => {
-      if (Object.keys(response).length !== 0) {
-        const url = this.getUrlFromBase64(response[0].Extension, formModel.value);
-        response[0].browserUrl = url;
-        this.bindPredictionData(response[0]);
+      if (Object.keys(response).length !== 0) {  // check for NULL data
+        const url = this.getUrlFromBase64(response[0].Extension, formModel.value); // bind base64 image data
+        response[0].browserUrl = url;                                              // to HTML using DomSanitizer
+        this.bindPredictionData(response[0]); // Bind properties of given image
       }
     });
   }
+
+  /**
+   * Get cluster name mapped with cluster number return dictionary
+   * of number to name mapped cluster names if not found display only numbers
+   */
   getClusterName() {
     this._emService.getClusterName(this.k).subscribe((response) => {
-      if (Object.keys(response).length !== 0) {
+      if (Object.keys(response).length !== 0) { // check for NULL
         this.dicKToName = response;
-      } else {
+      } else {    // If not found then bind cluster numbers
         for (let x = 0; x < this.k; x++) {
           this.dicKToName[x.toString()] = x.toString();
         }
       }
     });
   }
+
+  /**
+   * Set Cluster Name take Dictionary of cluster number to
+   * name mapping as parameter and saved it to server side
+   * @param mappingKey: object
+   */
   setClusterName(mappingKey: any) {
     this._emService.setClusterName(this.k, mappingKey).subscribe((response) => {
-      if (Object.keys(response).length !== 0) {
-        if (response.res) {
+      if (Object.keys(response).length !== 0) { // check for NULL
+        if (response.res) { // If saved successfully
           alert('saved dictionay');
-          this.getClusterName();
-        } else {
+          this.getClusterName(); // refetch the saved name
+        } else { // If failed
           alert('some error occured');
         }
       }
     });
   }
+
+  /** Get cluster parameter take optional parameter triggered if it
+   * become true then reinitialize all the value responsibility cluster
+   * name and image extension supported it is useful when k value is changed
+   * @param trigger: boolean
+   */
   getClusterParameter(trigger = false) {
     this._emService.getClusterParameter(this.k).subscribe((response) => {
-      if (Object.keys(response)) {
-        this.clusterParameter = response;
-        // console.log(response);
-        this.parameterChart = this.getLineChart(this.clusterParameter.loglikelihood);
-        if (trigger) {
+      if (Object.keys(response)) { // check for NULL
+        this.clusterParameter = response; // bind cluster parameters
+        this.parameterChart = this.getLineChart(this.clusterParameter.loglikelihood); // bind loglikelihood chart
+        if (trigger) { // if triggered then rebind all the values
           this.clusterIsReady.emit(true);
         }
       }
     });
   }
+
+  /**
+   * load all the image extension supported by models
+   */
   getSupportedImagesExtension() {
     this._emService.getSupportedImagesExtension(this.k).subscribe((response) => {
-      if (Object.keys(response).length !== 0) {
+      if (Object.keys(response).length !== 0) { // check for NULL
         this.imageExtension = response;
       }
     });
   }
+
+  /**
+   * load the top n image responsibility along with all
+   * the parameter of image take n i.e number of parameter
+   * to load
+   * @param n: number
+   */
   getFirstNDataResponsibility(n: number) {
     this._emService.getFirstNDataResponsibility(this.k, n).subscribe((response) => {
-      if (Object.keys(response).length !== 0) {
+      if (Object.keys(response).length !== 0) { // check for NULL
         Object.keys(response).forEach(element => {
           response[element].forEach(ele => {
+          /* Iterate through each response to assign browser URL for each Image*/
           // tslint:disable-next-line: no-string-literal
           const base64 = this.getUrlFromBase64(ele['Extension'], ele['ImageBase64']);
           // tslint:disable-next-line: no-string-literal
@@ -146,29 +166,46 @@ export class EmComponent implements OnInit {
           });
         });
         this.topNList = response;
-        // console.log(this.topNList);
         this.NRespKeys = Object.keys(this.topNList);
       }
     });
   }
+
+  /**
+   * Used to get TOP n heteroginity to find optimum number
+   * of number of cluster take n (number of heterogeneity)
+   * @param n : number
+   */
   getFirstNHeterogeneity(n: number) {
     this._emService.getFirstNHeterogeneity(this.k, n).subscribe((response) => {
-      // console.log(response);
+      if (Object.keys(response).length !== 0) { // check for NULL
+        // console.log(response); // Leave for bind in future
+      }
     });
   }
+
+  /**
+   * take new value of k (number of cluster) and retrain
+   * the model and rebind the response to view
+   * @param k : number
+   */
   changeK(k: number) {
     this._emService.changeK(k).subscribe((response) => {
-      // console.log(response);
-      if (Object.keys(response).length !== 0) {
+      if (Object.keys(response).length !== 0) { // check For NULL
         if (response.res) {
           alert('retrain successful');
-          this.getClusterParameter(true);
+          this.getClusterParameter(true); // Rebind view if success
         }
       }
     });
   }
   /// API calling methods end
+
   /// User Interface actions
+
+  /**
+   * create form object for View HTML forms
+   */
   createForm() {
     this.form = this.fb.group({
       Image: {
@@ -178,6 +215,12 @@ export class EmComponent implements OnInit {
       }
     });
   }
+
+  /**
+   * change Image File method take event as parameter
+   * and set the Image Url to current Image
+   * @param event : $event
+   */
   onFileChange(event) {
     const reader = new FileReader();
     if (event.target.files && event.target.files.length > 0) {
@@ -189,38 +232,52 @@ export class EmComponent implements OnInit {
           filetype: file.type,
           value: reader.result.toString().split(',')[1]
         });
-        // this.url = reader.result;
-        this.setImageUrl(reader.result,  file.name);
-        this.imageParameter = null;
+        this.setImageUrl(reader.result,  file.name); // Bind Image With URL in View
+        this.imageParameter = null; // reset the Image Parameter
       };
     }
   }
-  getUrlFromBase64(fileExtension: string, base64Val: string) {
+
+  /**
+   * take 2 paramter extension and base64 string and return
+   * SafeResourseUrl taht can be binded in <img>  src attribute
+   * @param fileExtension : string
+   * @param base64Val : string
+   */
+  getUrlFromBase64(fileExtension: string, base64Val: string): SafeResourceUrl {
     const resourceValue = 'data:image/' + fileExtension.replace(/^./g, '') + ';base64,'
     + base64Val.replace(/\\\//g, '/');
     return this._sanitizer.bypassSecurityTrustResourceUrl(resourceValue);
   }
-  /// User Interface actions
+
+  /// User Interface actions end
+
   /// Button or click actions
+
+  /**
+   * Predict action take place call predict API to
+   * get response and Bind the result to view
+   */
   onSubmit() {
     const formModel = this.form.get('Image').value; // this.form.value;
-    if (this.form.get('Image').value.value == null) {
+    if (this.form.get('Image').value.value == null) { // Check for NULL
       alert('No Image uploaded');
       return;
     }
     // tslint:disable-next-line: no-string-literal
     formModel['k'] = this.k;
     const filetype = formModel.filetype;
-    // const val = formModel.value;
     const extension = '.' + filetype.split('/')[1];
-    if (this.imageExtension.find(x => extension).length === 0) {
+    if (this.imageExtension.find(x => extension).length === 0) { // Check for supported Image EXtension
       alert('File is not supported');
       return;
     }
-    // const url = this.getUrlFromBase64(extension , val);
-    // this.setImageUrl(url, formModel.filename);
-    this.predictImage(formModel);
+    this.predictImage(formModel); // Call predict API and Bind response
   }
+
+  /**
+   * Used to clear all the Form data and Binded Image parameters
+   */
   clearFile() {
     this.form.get('Image').setValue(null);
     this.url = null;
@@ -228,25 +285,42 @@ export class EmComponent implements OnInit {
     this.imageParameter = null;
     this.setImageUrl(this.url, null);
   }
+
+  /**
+   * Called when value of k is changes
+   */
   retrain() {
     this.changeK(this.k);
   }
+
+  /**
+   * Bind the result of predicted data or top
+   * n trained data parameter charts on View
+   * @param items : object
+   */
   bindPredictionData(items: any) {
     this.setImageUrl(items.browserUrl, items.ImageName);
     this.imageParameter = new ImageModel(items);
-    // console.log(this.dicKToName[this.imageParameter.AssignCluster]);
     this.featureChart = this.getfeatureChart(this.imageParameter.R, this.imageParameter.G, this.imageParameter.B);
     this.responsibilityChart = this.getResponsibilityLineChart(this.imageParameter.SoftCount);
-    // console.log(this.imageParameter);
   }
+
+  /**
+   * called clusterName set API when cluster name changed
+   */
   save() {
     if (Object.keys(this.dicKToName).length === this.k &&
     // tslint:disable-next-line: triple-equals
     !Object.values(this.dicKToName).some(x => x == undefined || x == null)) {
-      // console.log(this.dicKToName);
-      this.setClusterName(this.dicKToName);
+      this.setClusterName(this.dicKToName); // call cluster name changed API
     }
   }
+
+  /**
+   * set Cluster parameter Navigation chart
+   * visibility respect to the selection
+   * @param nav : EMNAV
+   */
   navChange(nav: EMNAV) {
     this.viewNav.setVisibility(nav);
     if (nav === EMNAV.LOGLIKELIHOOD) {
@@ -259,8 +333,16 @@ export class EmComponent implements OnInit {
       this.parameterChart = null;
     }
   }
+
   // button action end
+
   // chart
+
+  /**
+   * return LogLikelihood chart with
+   * provided data as parameters
+   * @param Data : object
+   */
   getLineChart(Data: any): Chart {
     const chart = new Chart({
       chart: {
@@ -287,12 +369,14 @@ export class EmComponent implements OnInit {
         }
       ]
     });
-    // if (ref && ref.nativeElement) {
-    //   // tslint:disable-next-line: no-string-literal
-    //   chart.chart['renderTo'] = 'a1'; // ref.nativeElement;
-    // }
     return chart;
   }
+
+  /**
+   * return Responsibility Line chart
+   * with provided data as parameters
+   * @param Data : object
+   */
   getResponsibilityLineChart(Data: any): Chart {
     const chart = new Chart({
       chart: {
@@ -314,7 +398,6 @@ export class EmComponent implements OnInit {
         min: -1
       },
       tooltip: {
-        // shared: true,
         // tslint:disable-next-line: object-literal-shorthand
         formatter: function() {
           return '<span> ' + this.y.toString() + '<b>(' + (+parseFloat(this.y.toString()).toFixed( 2 ) * 100).toString() + '%)</b>';
@@ -331,12 +414,16 @@ export class EmComponent implements OnInit {
         }
       ]
     });
-    // if (ref && ref.nativeElement) {
-    //   // tslint:disable-next-line: no-string-literal
-    //   chart.chart['renderTo'] = 'a1'; // ref.nativeElement;
-    // }
     return chart;
   }
+
+  /**
+   * return Image Features Red, green and Blue
+   * column chart with provided Data as parameters
+   * @param r : number
+   * @param g : number
+   * @param b : number
+   */
   getfeatureChart(r: number, g: number, b: number): Chart {
     const chart = new Chart({
       chart: {
@@ -356,7 +443,6 @@ export class EmComponent implements OnInit {
               'Green',
               'Blue'
           ]
-          // labels: {enabled: false}
       },
       yAxis: {
           min: 0,
@@ -385,12 +471,14 @@ export class EmComponent implements OnInit {
         }
       ]
     });
-    // if (ref && ref.nativeElement) {
-    //   // tslint:disable-next-line: no-string-literal
-    //   chart.chart['renderTo'] = ref.nativeElement;
-    // }
     return chart;
   }
+
+  /**
+   * return center co-ordinates of
+   * each clusters provided in data
+   * @param data : object
+   */
   getmeansChart(data: any): Chart {
     const Series = [];
     // tslint:disable-next-line: prefer-for-of
@@ -438,12 +526,15 @@ export class EmComponent implements OnInit {
       },
       series: Series
     });
-    // if (ref && ref.nativeElement) {
-    //   // tslint:disable-next-line: no-string-literal
-    //   chart.chart['renderTo'] = 'a2'; // ref.nativeElement;
-    // }
     return chart;
   }
+
+  /**
+   * return Pi chart with provided title
+   * Binded to see the weight of each clusters
+   * @param Data : object
+   * @param title : string
+   */
   getPieChart(Data: any, title: string): Chart {
     const chart = new Chart({
         chart: {
@@ -476,13 +567,16 @@ export class EmComponent implements OnInit {
               }),
         }]
     });
-    // if (ref && ref.nativeElement) {
-    //   // tslint:disable-next-line: no-string-literal
-    //   chart.chart['renderTo'] = 'a4'; // ref.nativeElement;
-    // }
     return chart;
   }
+
   // End chart
+
+  /**
+   * bind the Image Name and Url to View
+   * @param url : string/SafeResourceUrl
+   * @param imageName : string
+   */
   setImageUrl(url: any, imageName: string) {
     this.url = url;
     this.imageName = imageName;

@@ -1,11 +1,11 @@
-import { Component, OnInit, OnChanges, SimpleChanges, Input } from '@angular/core';
+import { Component, OnChanges, SimpleChanges, Input } from '@angular/core';
 
 @Component({
   selector: 'app-dynamictable',
   templateUrl: './dynamictable.component.html',
   styleUrls: ['./dynamictable.component.sass']
 })
-export class DynamictableComponent implements OnInit, OnChanges {
+export class DynamictableComponent implements OnChanges {
   @Input() data;
   @Input() nameDic;
   header: any;
@@ -14,30 +14,36 @@ export class DynamictableComponent implements OnInit, OnChanges {
   clusterNameBinded: any;
   constructor() { }
 
-  ngOnInit() {
-    // this.initVariable();
-  }
+  /**
+   * Initiate all the variables
+   */
   initVariable() {
     this.header = [];
     this.bindedData = [];
     this.clusterNameBinded = {};
     this.subHeader = ['R', 'G', 'B'];
   }
+
+  /**
+   * Life cycle hook change reflacted when data is changed
+   * @param changes : SimpleChanges
+   */
   ngOnChanges(changes: SimpleChanges) {
-    this.initVariable();
-    // console.log(changes);
+    this.initVariable(); // Initialize all variable
     // tslint:disable-next-line: no-string-literal
     if (changes['data'] && changes['nameDic']) {
       // tslint:disable-next-line: no-string-literal
-    this.bindedData = changes['data'].currentValue;
-    // console.log(this.bindedData);
+    this.bindedData = changes['data'].currentValue; // Bind table data
     // tslint:disable-next-line: no-string-literal
-    this.clusterNameBinded = changes['nameDic'].currentValue;
-    // console.log(this.clusterNameBinded);
-    this.header = Object.keys(this.clusterNameBinded);
-    // console.log(this.header);
+    this.clusterNameBinded = changes['nameDic'].currentValue; // Bind Cluster Name
+    this.header = Object.keys(this.clusterNameBinded); // Bind headers
     }
   }
+
+  /**
+   * check If Item is Array or Not
+   * @param item : object
+   */
   checkForArray(item: any): boolean {
     return Array.isArray(item);
   }

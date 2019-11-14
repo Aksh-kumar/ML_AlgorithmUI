@@ -1,15 +1,5 @@
 <table class='parameter-table'>
-    <!-- <thead>
-            <ng-container *ngFor='let item of header;let i=index'>
-                <tr>
-                    <th>
-                        {{clusterNameBinded[+item]}}
-                    </th>
-                </tr>
-            </ng-container>
-    </thead> -->
     <tbody>
-        <!-- <tr> -->
             <ng-container *ngFor='let item of bindedData;let i=index'>
             <tr>
                 <th>
@@ -31,7 +21,6 @@
                                     <th>{{subHeader[j]}}</th>
                                     <ng-container *ngFor='let ele of itm;let k=index'>
                                         <td>
-                                            <!-- {{item[k][j]}} -->
                                             {{ele}}
                                         </td>
                                     </ng-container>
@@ -42,6 +31,5 @@
                 </td>
             </tr>
             </ng-container>
-        <!-- </tr> -->
     </tbody>
 </table>
